@@ -38,7 +38,6 @@
 //#ifndef _GNU_SOURCE
 //#define _GNU_SOURCE 1
 //#endif
-// TBD: Are the contents of the following file used?
 #include <unistd.h>
 // Note: The following file is for dynamic loading:
 #include <dlfcn.h>
@@ -99,6 +98,16 @@ static inline bool loader_platform_is_path_absolute(const char *path) {
 }
 
 static inline char *loader_platform_dirname(char *path) { return dirname(path); }
+#include <stdio.h>
+
+// find application path + name. Path cannot be longer than 1024, returns NULL if it is greater than that.
+static inline char *loader_platform_executable_path(char buffer[1024]) {
+    ssize_t count = readlink("/proc/self/exe", buffer, 1024);
+    if (count == -1) return NULL;
+    if (count == 0) return NULL;
+    buffer[count] = '\0';
+    return buffer;
+}
 
 // Dynamic Loading of libraries:
 typedef void *loader_platform_dl_handle;
@@ -162,6 +171,7 @@ static inline void loader_platform_thread_cond_broadcast(loader_platform_thread_
 #include <io.h>
 #include <stdbool.h>
 #include <shlwapi.h>
+#include <direct.h>
 #ifdef __cplusplus
 #include <iostream>
 #include <string>
@@ -277,6 +287,13 @@ static inline char *loader_platform_dirname(char *path) {
         }
     }
     return path;
+}
+
+static inline char *loader_platform_executable_path(char buffer[1024]) {
+    DWORD ret = GetModuleFileName( NULL, buffer, 1024);
+    if (ret == 0) return NULL;
+    if (ret > 1024) return NULL;
+    return buffer;
 }
 
 // Dynamic Loading:
